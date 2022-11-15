@@ -5,8 +5,8 @@ String inString;
 int p_mg90s = 9;              // signal for mg90 Servo Motor -> 그리퍼 open / close 제어하는 모터
 int p_hs311 = 10;             // 그리퍼 rotation 제어하는 모터
 
-int p_zstepCw = 2;
-int p_zstepCcw = 4;
+int p_zstepCw = 2;            // z축 모터의 경우 핀 두 개로 방향을 제어함.
+int p_zstepCcw = 4;           // cw에 펄스를 인가하면 위로 이동, Ccw에 펄스를 인가하면 아래로 이동
 
 //--------------- input parameter --------
 //int tw_mg90s=13; //13(min), 19(neutral)->16, 25(max) // 13이면 완전 open(-90도), 25면 완전 close(+90도), 19면 그리퍼를 중간 위치로 이동
@@ -88,7 +88,9 @@ void loop()
   pwmWrite(p_hs311, wpower); //gripper wrist rotate
   for (nPul; nPulz<=zpower; nPulz++){
         if(nPulz<zpower) {
-        if(updown==LOW){ digitalWrite(p_zstepCw,pulse_HL); } else {digitalWrite(p_zstepCcw,pulse_HL); } // Cw가 LOW면 앞쪽 코드 실행(Cw 핀에 펄스를 줌), Cw가 HIGH면 뒤쪽 코드 실행 (Ccw에 펄스를 줌)
+          if(updown==LOW) {
+            digitalWrite(p_zstepCw,pulse_HL);
+            } else {digitalWrite(p_zstepCcw,pulse_HL);} // Cw가 LOW면 앞쪽 코드 실행(Cw 핀에 펄스를 줌), Cw가 HIGH면 뒤쪽 코드 실행 (Ccw에 펄스를 줌)
         pulse_HL=!pulse_HL;
         delay(1);
       }  
@@ -100,4 +102,3 @@ void loop()
   }//z축 모터
   
 }
-  
