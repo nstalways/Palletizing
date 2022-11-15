@@ -1,2 +1,2 @@
 # Palletizing
-Engineering Clinici about Palletizing Robot(x, y, z, gripper)
+Capstone Design Project: Palletizing Robot(x, y, z, gripper)
