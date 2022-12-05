@@ -1100,7 +1100,8 @@ if __name__ == '__main__':
 
     if args.dataset is not None:
         set_dataset(args.dataset)
-
+    
+    cnt = 0 # 적재용 펄스 개수 제어 변수
     # Video 출력
     while True:
         # webcam 할당
@@ -1208,7 +1209,7 @@ if __name__ == '__main__':
             info = makePulse(center, angle)
             
             # 계산한 data를 아두이노로 송신
-            Py2Ard(info, baudrate=9600)
+            Py2Ard(cnt, info, baudrate=9600)
 
             # grip_x = 265
             # grip_y = 512
