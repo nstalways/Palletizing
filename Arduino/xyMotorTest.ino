@@ -12,8 +12,8 @@ int p_ena_ymotor=7; //enable for motor y : yellow
 //-------- input parameter ------------ -> Serial 데이터로 받아옴.
 //unsigned int maxPulx=1000; // 펄스 개수만큼 x 모터가 움직임.
 //unsigned int maxPuly=100; // 펄스 개수만큼 y 모터가 움직임. (하지만 x 모터와 y 모터 종류가 달라서, 똑같은 pulse 개수일 때 y 모터가 더 많이 움직임.)
-//boolean dir_xmotor=HIGH;  // dir이 HIGH면 오른쪽, LOW면 왼쪽
-//boolean dir_ymotor=HIGH;  // 동일
+//boolean dir_xmotor=LOW;  // dir이 HIGH면 오른쪽, LOW면 왼쪽
+//boolean dir_ymotor=HIGH;  // dir이 HIGH면 앞쪽, LOW면 뒤쪽
 //boolean ena_xmotor=HIGH; // enable. HIGH면 모터에 전류 공급을 차단하여 동작을 멈춤.
 //boolean ena_ymotor=HIGH; // 동일
 //-------- input parameter ------------
@@ -36,7 +36,7 @@ void setup()
   pinMode(p_pul_ymotor,OUTPUT);
   pinMode(p_dir_ymotor,OUTPUT);
   pinMode(p_ena_ymotor,OUTPUT);
-//  ena_xmotor=LOW; ena_ymotor=LOW; // ena = LOW일 때 모터가 동작하기 떄문에, 초기값은 LOW로 설정
+//  ena_xmotor=LOW; ena_ymoto`r=LOW; // ena = LOW일 때 모터가 동작하기 떄문에, 초기값은 LOW로 설정
 
   //serial 데이터로 제어하려면 아래 코드 필요.
   //Serial.begin(9600); // begin 내부 parameter는 baud rate로, 데이터의 송/수신 속도를 의미함. 일반적으로 9600을 설정.
@@ -47,6 +47,8 @@ void loop()
 {
   unsigned int nPulx = 0;
   unsigned int nPuly = 0;
+  unsigned int cntX = 0;
+  unsigned int cntY = 0;
   //String inString;
   //serial polling 
   // serial get (xmaxPul 100000 , xdir 0) -> maxPul=xmaxpul, dir_xmotor=xdir
@@ -134,17 +136,23 @@ void loop()
     
     //x y pulse generation -> 앞선 조건문에 의해 설정된 pulse_HL 신호를 넘겨줌. 따라서 x, y 모터가 pulse 개수만큼 순차적으로 동작함.
     if(ena_xmotor==LOW){
-      if(nPulx<maxPulx) {
-        digitalWrite(p_pul_xmotor,pulse_HL);
-      } else {digitalWrite(p_pul_xmotor,LOW);}
-      nPulx++;   
+        if(nPulx<maxPulx) {
+          digitalWrite(p_pul_xmotor,pulse_HL);
+        } else {digitalWrite(p_pul_xmotor,LOW);}
+        cntX++;
+        if ((cntX%10)==0){
+          nPulx++;   
+          }
     }
     
     if(ena_ymotor==LOW){
         if(nPuly<maxPuly) {
           digitalWrite(p_pul_ymotor,pulse_HL);
         } else {digitalWrite(p_pul_ymotor,LOW);}
-        nPuly++;
+        cntY++;
+        if ((cntY%10)==0){
+          nPuly++;
+        }
     }
     
     // 조건을 만족하면, enable을 HIGH로 설정함으로써 모터에 전류 공급을 차단함.
@@ -152,7 +160,9 @@ void loop()
     if(nPuly>=maxPuly){ ena_ymotor=HIGH; digitalWrite(p_ena_ymotor,ena_ymotor); }
     if((nPulx>=maxPulx)&&(nPuly>=maxPuly)){ break; } // x,y 모터 모두! maxPul을 넘으면 while문을 break함.
     
-    delay(1);           
+//    delay(1);
+    delayMicroseconds(10);           
+  
     } 
   }
 }
