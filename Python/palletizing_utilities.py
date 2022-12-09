@@ -1,6 +1,4 @@
-# Palletizing Robot 동작을 위한 함수들
-import time
-import serial
+import time, serial
 
 def calCenter(M): # Max x, Min x, Max y, Min y
     # 중심 좌표 계산
@@ -9,47 +7,61 @@ def calCenter(M): # Max x, Min x, Max y, Min y
 
     return (cx, cy)
 
-# OpenCV의 이미지 좌표는 (x = row(height), y = col(width))
-# Matplotlib의 이미지 좌표는 (x = col(width), y = row(height))
-# 펄스 계산에 사용하는 좌표는 cv2 좌표이기 때문에, x 모터에 move_x를, y 모터에 move_y를 주면 됨.
-# dir_x=0이면 위(왼쪽)로, 1이면 아래(오른쪽) 이동
-# dir_y=0이면 앞쪽으로, 1이면 뒤쪽으로 이동
+def makePulse(centerpoint, angle):
+    grip_x, grip_y = 265, 512
 
-def makePulse(centerpoint, angle):    
-    grip_x, grip_y = 265, 512 # gripper의 중심점
+    x, y = centerpoint[0], centerpoint[1]
+    params = {'x_left':67.5, 'x_left_center':30, 'x_right_center':55, 'x_right':72,
+                'y_upper':25.5, 'y_center':23.5, 'y_lower':21,
+                    'z':0.1207}
 
-    x, y = centerpoint[0], centerpoint[1] # 인식한 물체의 중심점(x:col, y:row)
-    print(f'cx, cy: {x}, {y}')
+    ######## X, Y 모터 제어 코드 ########
+    # 위치별 파라미터 setting
+    ratio_x, ratio_y = x / 550, y / 550
 
-    move_x = grip_x - x # x 모터 펄스 (gripper의 x 좌표 - 인식한 물체의 x좌표 = x 거리)
-    move_y = grip_y - y # y 모터 펄스 (gripper의 y 좌표 - 인식한 물체의 y좌표 = y 거리)
-
-    pulse_y = round(abs(move_y) * 24.20) # 상수: 실험을 통해 계산한 값
-    if move_y >= 0: # 위쪽(+y 방향)으로 이동
-        dir_y = 0
-    else: # 아래쪽(-y 방향)으로 이동
-        dir_y = 1
-    ena_y = 0 # enable은 0(=LOW)일 때 동작하므로 초기값은 0으로 set
-
-
-    if move_x >= 0:
-        pulse_x = round(abs(move_x) * 59.5) # -> 증가시켜야 함
-        dir_x = 1 # 0 > 1
+    param_key_x, param_key_y = '', ''
+    if ratio_x <= 0.45:
+        param_key_x = 'x_left'
+    elif 0.45 < ratio_x < 0.5:
+        param_key_x = 'x_left_center'
+    elif 0.5 <= ratio_x < 0.55:
+        param_key_x = 'x_right_center'
     else:
-        pulse_x = round(abs(move_x) * 75.25) # -> 증가시켜야 함
-        dir_x = 0 # 1 > 0
-    ena_x = 0
+        param_key_x = 'x_right'
     
-    grip = 25 # 닫기
-    if round(angle) < 5 or round(angle) >= 85:
+    if ratio_y <= 0.4:
+        param_key_y = 'y_upper'
+    elif 0.4 < ratio_y <= 0.6:
+        param_key_y = 'y_center'
+    else:
+        param_key_y = 'y_lower'
+    
+    print(f'[Selected Keys(X, Y)]: {param_key_x}: {params[param_key_x]}, {param_key_y}: {params[param_key_y]}')
+
+    move_x = grip_x - x
+    move_y = grip_y - y
+
+    # 펄스 값 연산
+    pulse_x, pulse_y = round(abs(move_x) * params[param_key_x]), round(abs(move_y) * params[param_key_y])
+
+    # 제어 방향 설정
+    dir_x = 1 if move_x >= 0 else 0
+    dir_y = 0 if move_y >= 0 else 1
+
+    # enable 설정
+    ena_x, ena_y = 0, 0
+    ######################################
+    
+    ######## 그리퍼, Z 모터 제어 코드 ########
+    grip = 25 # 그리퍼 닫기
+    
+    if round(angle) < 5 or round(angle) >= 85: # 회전에 필요한 값 연산
         wrist = 20
     else:
-        wrist = 20 - round(angle*0.1207) # 움직여야할 펄스 개수, 20은 rotation 중립
-    pulse_z = 9700 # 이만큼 움직이는데 23초 소요(고정값) -> 1학기 땐 컵에 넣기 위해 22000이었는데, 현재는 적재가 목표이므로 더 낮은 값을 사용해도 됨.
-    dir_z = 0
-
-    # 이미지 영역에서 Y축으로 이동하려면 하드웨어 영역에서 X축 모터를 제어해야하고,
-    # 이미지 영역에서 X축으로 이동하려면 하드웨어 영역에서 Y축 모터를 제어해야하기 때문에, 반대로 값을 넘겨줌.
+        wrist = 20 - round(angle * params['z'])
+    
+    pulse_z, dir_z = 5500, 0
+    ##########################################
 
     return (pulse_y, dir_y, ena_y, pulse_x, dir_x, ena_x, grip, wrist, pulse_z, dir_z)
 
@@ -69,9 +81,8 @@ def Py2Ard(cnt, info, baudrate):
     z_data = str(zpow)+','+str(zdir)
     grip_z_data = gripper_data+'|'+z_data
 
-    print(xy_data)
-    print(grip_z_data)
-
+    print(f'[물체 인식] xy_motor: {xy_data}, grip_z_motor: {grip_z_data}')
+    
     # 시리얼 포트 오픈
     ard1 = serial.Serial('COM3', baudrate) # x,y 모터 포트
     ard2 = serial.Serial('COM4', baudrate) # z 모터 포트
@@ -83,7 +94,7 @@ def Py2Ard(cnt, info, baudrate):
     ard1.write(xy_data.encode())
     time.sleep(8) # 4 -> 8 -> 16
     ard2.write(grip_z_data.encode())
-    time.sleep(12) # z축 모터의 속도가 매우 느려서 24초라는 시간을 고정적으로 기다림. 알고리즘을 통해 가변적으로 변경 가능
+    time.sleep(7) # z축 모터의 속도가 매우 느려서 24초라는 시간을 고정적으로 기다림. 알고리즘을 통해 가변적으로 변경 가능
 
     # 지정한 자리로 돌아가기 위한 조건문
     if xdir==0:
@@ -119,12 +130,14 @@ def Py2Ard(cnt, info, baudrate):
     z_data = str(zpow)+','+str(zdir)
     grip_z_data = gripper_data+'|'+z_data
 
+    print(f'[지정 위치로 돌아갈 때] xy_motor: {xy_data}, grip_z_motor: {grip_z_data}')
+
     # 지정 위치로 돌아가는 데이터 전송
     time.sleep(2)
     ard2.write(grip_z_data.encode())
-    time.sleep(12)
+    time.sleep(7)
     ard1.write(xy_data.encode())
-    time.sleep(8) # 변경 예정
+    time.sleep(6)
 
     # 적재
     param_x = (cnt // 3)
@@ -141,44 +154,38 @@ def Py2Ard(cnt, info, baudrate):
     z_data = str(zpow) + ',' + str(zdir)
     grip_z_data = gripper_data + '|' + z_data
 
+    print(f'[적재_down] xy_motor: {xy_data}, grip_z_motor: {grip_z_data}')
     time.sleep(2)
     ard1.write(xy_data.encode())
     time.sleep(4)
     ard2.write(grip_z_data.encode())
-    time.sleep(12)
+    time.sleep(7)
 
     zdir = 1 # 올라오기 위한 데이터
     z_data = str(zpow) + ',' + str(zdir)
     grip_z_data = gripper_data + '|' + z_data
 
+    print(f'[적재_up] xy_motor: {xy_data}, grip_z_motor: {grip_z_data}')
     time.sleep(2)
     ard2.write(grip_z_data.encode())
-    time.sleep(12)
+    time.sleep(7)
 
     # 원래 자리로 돌아오는 데이터 선언
     xpul, xdir = 3000 + 2500 * param_x, 0
     ypul = abs(8000 * param_y - 2000)
     ydir = 0 if ypul > 2000 else 1
 
-    # fpow, zpow = 13, 0
-
     # 원래 자리로 돌아오는 데이터 병합
     x_data = str(xpul)+','+str(xdir)+'/'+str(xena)
     y_data = str(ypul)+','+str(ydir)+'/'+str(yena)
     xy_data = x_data+'|'+y_data
 
-    # gripper_data = str(fpow)+','+str(wpow)
-    # z_data = str(zpow)+','+str(zdir)
-    # grip_z_data = gripper_data+'|'+z_data    
-
-    print(xy_data)
-    # print(grip_z_data)
-    # 마지막 데이터 전송
+    print(f'[초기 위치] xy_motor: {xy_data}, grip_z_motor: {grip_z_data}')
+    
+    # 최종 데이터
     time.sleep(2)
-    # ard2.write(grip_z_data.encode())
-    # time.sleep(12)
     ard1.write(xy_data.encode())
-    time.sleep(8) # 2 > 8
+    time.sleep(7) # 2 > 8
 
     ard1.close()
     ard2.close()
