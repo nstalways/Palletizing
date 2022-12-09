@@ -1076,7 +1076,7 @@ def print_maps(all_maps):
     print()
 
 
-# 스크립트
+# 실행 스크립트
 if __name__ == '__main__':
     parse_args()
 
@@ -1102,8 +1102,7 @@ if __name__ == '__main__':
         set_dataset(args.dataset)
     
     cnt = 0 # 적재용 펄스 개수 제어 변수
-    # Video 출력
-    while True:
+    while True: # 비디오 출력
         # webcam 할당
         cap = cv2.VideoCapture(1)
 
@@ -1141,7 +1140,6 @@ if __name__ == '__main__':
                 break
         
         cap.release()
-        # cv2.destroyAllWindows()
 
         if state is False:
             print('프로그램을 종료합니다.')
@@ -1167,12 +1165,6 @@ if __name__ == '__main__':
                     calc_map(ap_data)
                     exit()
 
-                # if args.image is None and args.video is None and args.images is None:
-                #     dataset = COCODetection(cfg.dataset.valid_images, cfg.dataset.valid_info,
-                #                             transform=BaseTransform(), has_gt=cfg.dataset.has_gt)
-                #     prep_coco_cats()
-                # else:
-                #     dataset = None
                 dataset = None
 
                 print('인공지능 모델을 불러옵니다...', end='')
@@ -1199,10 +1191,6 @@ if __name__ == '__main__':
             # 중심점, 각도 계산
             center = calCenter(M)
             angle = rect[-1]
-
-            # print(f'center point: {center}')
-            # print(f'minAreaRect info: {rect}')  # shape: ((좌상단 x, y 좌표), (가로, 세로 폭), 회전 각도)
-            # print(f'box point: {box}')
             print(f'angle: {angle}') # 좌상단을 기준으로 계산됨
 
             # 중심점, 각도로 pulse 개수 계산
@@ -1210,12 +1198,6 @@ if __name__ == '__main__':
             
             # 계산한 data를 아두이노로 송신
             Py2Ard(cnt, info, baudrate=9600)
+            cnt += 1
 
-            # grip_x = 265
-            # grip_y = 512
-            # print(f'move x: {center[0] - grip_x}')
-            # print(f'move y: {center[1] - grip_y}')
-
-
-
-# gripper center = (493, 278) / row, column 순서
+            
